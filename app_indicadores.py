@@ -1,4 +1,4 @@
-import streamlit as st
+﻿import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -185,6 +185,10 @@ def criar_identificador_universal(df_inventario):
     mask_sem_plaqueta = df[col_plaqueta].isna() | (df[col_plaqueta].astype(str).str.strip() == '')
     
     # PASSO 2: Criar IDs virtuais APENAS para linhas sem plaqueta
+    # Garantir que coluna plaqueta seja string para evitar conflitos de dtype
+    df[col_plaqueta] = df[col_plaqueta].astype(str)
+    df.loc[df[col_plaqueta] == 'nan', col_plaqueta] = None
+    
     contador_virtual = 1
     
     for idx in df[mask_sem_plaqueta].index:
@@ -1094,7 +1098,7 @@ def pagina_dashboard_principal(df_caracterizacao, df_inventario):
                     df_temp['faixa_altura'] = pd.cut(df_temp['altura_num'], bins=bins, precision=1)
                     
                     # Contar por faixa e classe
-                    contagem = df_temp.groupby(['faixa_altura', 'classe_desenvolvimento']).size().unstack(fill_value=0).reset_index()
+                    contagem = df_temp.groupby(['faixa_altura', 'classe_desenvolvimento'], observed=False).size().unstack(fill_value=0).reset_index()
                     
                     # Garantir que todas as classes existam
                     todas_classes = ["Plantula (< 0.5m)", "Jovem (DAP < 5cm)", "Adulto (DAP ≥ 5cm)"]
@@ -1151,7 +1155,7 @@ def pagina_dashboard_principal(df_caracterizacao, df_inventario):
                         xaxis_title="Altura (m)",
                         yaxis_title="Frequência"
                     )
-                    st.plotly_chart(fig_hist, use_container_width=True)
+                    st.plotly_chart(fig_hist, width='stretch')
         
         # Classes de desenvolvimento
         if ht_col and len(df_inv_filtered) > 0:
@@ -1193,7 +1197,7 @@ def pagina_dashboard_principal(df_caracterizacao, df_inventario):
                         color_discrete_sequence=['#90EE90', '#228B22', '#006400']
                     )
                     fig_pie.update_layout(height=300)
-                    st.plotly_chart(fig_pie, use_container_width=True)
+                    st.plotly_chart(fig_pie, width='stretch')
     
     # ==================== ABA 2: SUCESSÃO ECOLÓGICA ====================
     with tab2:
@@ -1278,7 +1282,7 @@ def pagina_dashboard_principal(df_caracterizacao, df_inventario):
                         color_discrete_sequence=['#32CD32']
                     )
                     fig_gsuc.update_layout(height=300)
-                    st.plotly_chart(fig_gsuc, use_container_width=True)
+                    st.plotly_chart(fig_gsuc, width='stretch')
         
         # Origem das espécies
         origem_col = encontrar_coluna(df_inv_filtered, ['origem'])
@@ -1295,7 +1299,7 @@ def pagina_dashboard_principal(df_caracterizacao, df_inventario):
                         color_discrete_sequence=['#228B22', '#FFD700', '#FF6347']
                     )
                     fig_origem.update_layout(height=300)
-                    st.plotly_chart(fig_origem, use_container_width=True)
+                    st.plotly_chart(fig_origem, width='stretch')
     
     # ==================== ABA 3: INDICADORES AMBIENTAIS ====================
     with tab3:
@@ -1410,7 +1414,7 @@ def pagina_dashboard_principal(df_caracterizacao, df_inventario):
                 height=400
             )
             
-            st.plotly_chart(fig_radar, use_container_width=True)
+            st.plotly_chart(fig_radar, width='stretch')
     
     # ==================== ABA 4: ALERTAS E MONITORAMENTO ====================
     with tab4:
@@ -1767,7 +1771,7 @@ def analisar_outliers_caracterizacao(df_caracterizacao):
     
     if outliers_data:
         df_outliers = pd.DataFrame(outliers_data)
-        st.dataframe(df_outliers, use_container_width=True)
+        st.dataframe(df_outliers, width='stretch')
         
         # Mostrar valores específicos se solicitado
         col_selecionada = st.selectbox("Ver outliers detalhados para:", [None] + df_outliers['Coluna'].tolist())
@@ -1784,7 +1788,7 @@ def analisar_outliers_caracterizacao(df_caracterizacao):
             outliers_df = df_caracterizacao[df_caracterizacao[col_selecionada].isin(values[outliers_mask])]
             
             st.write(f"**Outliers para {col_selecionada}:**")
-            st.dataframe(outliers_df[[col for col in ['cod_prop', 'ut', col_selecionada] if col in outliers_df.columns]], use_container_width=True)
+            st.dataframe(outliers_df[[col for col in ['cod_prop', 'ut', col_selecionada] if col in outliers_df.columns]], width='stretch')
     else:
         st.success("✅ Nenhum outlier detectado nos dados de caracterização!")
 
@@ -1829,7 +1833,7 @@ def analisar_outliers_inventario(df_inventario):
             })
     
     df_outliers = pd.DataFrame(outliers_data)
-    st.dataframe(df_outliers, use_container_width=True)
+    st.dataframe(df_outliers, width='stretch')
 
 def verificar_consistencia_prop_ut(df_caracterizacao, df_inventario):
     """Verifica consistência entre cod_prop e UT nos dois bancos"""
@@ -1901,7 +1905,7 @@ def verificar_consistencia_prop_ut(df_caracterizacao, df_inventario):
             })
         
         df_detalhes = pd.DataFrame(prop_detalhes)
-        st.dataframe(df_detalhes, use_container_width=True)
+        st.dataframe(df_detalhes, width='stretch')
 
 def verificar_consistencia_areas(df_inventario):
     """Verifica se as áreas são consistentes dentro de cada UT"""
@@ -1948,7 +1952,7 @@ def verificar_consistencia_areas(df_inventario):
     
     if len(inconsistentes) > 0:
         st.error(f"⚠️ {len(inconsistentes)} UTs com áreas inconsistentes:")
-        st.dataframe(inconsistentes, use_container_width=True)
+        st.dataframe(inconsistentes, width='stretch')
     else:
         st.success("✅ Todas as UTs têm áreas consistentes!")
 
@@ -1993,7 +1997,7 @@ def analisar_especies(df_inventario):
     # Top espécies mais comuns
     st.write("**🔝 Top 15 Espécies Mais Comuns:**")
     top_especies = especies.value_counts().head(15)
-    st.dataframe(top_especies.reset_index(), use_container_width=True)
+    st.dataframe(top_especies.reset_index(), width='stretch')
     
     # Espécies com apenas 1 ocorrência
     especies_raras = especies.value_counts()
@@ -2003,7 +2007,7 @@ def analisar_especies(df_inventario):
         st.write(f"**🔍 {len(especies_unicas_ocorrencia)} espécies com apenas 1 ocorrência:**")
         
         if st.button("Ver espécies raras"):
-            st.dataframe(especies_unicas_ocorrencia.reset_index(), use_container_width=True)
+            st.dataframe(especies_unicas_ocorrencia.reset_index(), width='stretch')
 
 def gerar_relatorio_estatisticas(df_caracterizacao, df_inventario):
     """Gera relatório completo de estatísticas"""
@@ -2046,7 +2050,7 @@ def gerar_relatorio_estatisticas(df_caracterizacao, df_inventario):
             nulos_carac = df_caracterizacao.isnull().sum()
             nulos_carac = nulos_carac[nulos_carac > 0].sort_values(ascending=False)
             if len(nulos_carac) > 0:
-                st.dataframe(nulos_carac.reset_index(), use_container_width=True)
+                st.dataframe(nulos_carac.reset_index(), width='stretch')
             else:
                 st.success("Nenhum valor nulo!")
         
@@ -2055,7 +2059,7 @@ def gerar_relatorio_estatisticas(df_caracterizacao, df_inventario):
             nulos_inv = df_inventario.isnull().sum()
             nulos_inv = nulos_inv[nulos_inv > 0].sort_values(ascending=False)
             if len(nulos_inv) > 0:
-                st.dataframe(nulos_inv.reset_index(), use_container_width=True)
+                st.dataframe(nulos_inv.reset_index(), width='stretch')
             else:
                 st.success("Nenhum valor nulo!")
 
@@ -2428,7 +2432,7 @@ def analisar_relacao_hipsometrica(df_inventario, col_ht, col_dap):
             labels={'x': 'DAP (cm)', 'y': 'Altura (m)'},
             trendline="ols"
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width='stretch')
 
 def relatorio_auditoria_completo(df_caracterizacao, df_inventario):
     """Gera relatório completo de auditoria"""
@@ -2874,7 +2878,7 @@ def calcular_fitossociologia_censo(df_inventario, df_caracterizacao):
         )
         
         # Tabela principal
-        st.dataframe(fitossocio_display_formatado, use_container_width=True, height=400)
+        st.dataframe(fitossocio_display_formatado, width='stretch', height=400)
         
         # Download
         csv = fitossocio_display.to_csv(index=False)
@@ -2936,7 +2940,7 @@ def calcular_fitossociologia_censo(df_inventario, df_caracterizacao):
                     )
                 )
                 
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width='stretch')
                 
                 # Adicionar explicação sobre o gráfico
                 with st.expander("📖 Como interpretar o gráfico"):
@@ -2966,7 +2970,7 @@ def calcular_fitossociologia_censo(df_inventario, df_caracterizacao):
                     color_continuous_scale='Greens'
                 )
                 fig.update_layout(height=400)
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width='stretch')
                 
                 st.info("💡 Área basal não disponível. Gráfico baseado apenas na Densidade Relativa.")
         
@@ -3109,7 +3113,7 @@ def calcular_fitossociologia_parcelas(df_inventario, df_caracterizacao):
         )
         
         # Tabela principal
-        st.dataframe(fitossocio_display_formatado, use_container_width=True, height=400)
+        st.dataframe(fitossocio_display_formatado, width='stretch', height=400)
         
         # Download
         csv = fitossocio_display.to_csv(index=False)
@@ -3172,7 +3176,7 @@ def calcular_fitossociologia_parcelas(df_inventario, df_caracterizacao):
                 )
             )
             
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
             
             # Adicionar explicação sobre o gráfico
             with st.expander("📖 Como interpretar o gráfico"):
@@ -3793,7 +3797,7 @@ def avaliar_suficiencia_amostral_melhorada(curva_coletor, chao1_valor, completud
                 ]
             })
             
-            st.dataframe(criterios_df, use_container_width=True, hide_index=True)
+            st.dataframe(criterios_df, width='stretch', hide_index=True)
             
             # Diagnóstico final
             score_suficiencia = (criterios_atendidos / total_criterios) * 100
@@ -4066,7 +4070,7 @@ def calcular_indices_diversidade(df_inventario, df_caracterizacao, propriedades_
                 hovermode='x unified'
             )
             
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
             
             # Exibir métricas do Chao1
             st.markdown("#### 🧮 Estimador Chao1 de Riqueza Total")
@@ -4318,7 +4322,7 @@ def exibir_analise_dados_filtrados(df_inventario, df_caracterizacao, col_estagio
                     )
                     
                     fig_pizza.update_layout(height=400)
-                    st.plotly_chart(fig_pizza, use_container_width=True)
+                    st.plotly_chart(fig_pizza, width='stretch')
                 
                 with col2:
                     st.markdown("**📊 Resumo:**")
@@ -4369,7 +4373,7 @@ def exibir_analise_dados_filtrados(df_inventario, df_caracterizacao, col_estagio
                         height=400
                     )
                     
-                    st.plotly_chart(fig_bar, use_container_width=True)
+                    st.plotly_chart(fig_bar, width='stretch')
                 
                 with col2:
                     st.markdown("**📊 Resumo:**")
@@ -4410,7 +4414,7 @@ def exibir_analise_dados_filtrados(df_inventario, df_caracterizacao, col_estagio
                         margin=dict(l=200)  # Margem esquerda para nomes das espécies
                     )
                     
-                    st.plotly_chart(fig_especies, use_container_width=True)
+                    st.plotly_chart(fig_especies, width='stretch')
                 
                 with col2:
                     st.markdown("**📊 Top 5:**")
@@ -4683,7 +4687,7 @@ def exibir_analise_cobertura_copa(dados_restauracao, df_caracterizacao):
                            annotation_text="Meta: 80%")
     
     fig_cobertura.update_layout(height=400)
-    st.plotly_chart(fig_cobertura, use_container_width=True)
+    st.plotly_chart(fig_cobertura, width='stretch')
     
     # Tabela resumo
     st.markdown("#### 📊 Resumo por Propriedade")
@@ -4694,7 +4698,7 @@ def exibir_analise_cobertura_copa(dados_restauracao, df_caracterizacao):
     )
     df_resumo_cobertura['cobertura_copa'] = df_resumo_cobertura['cobertura_copa'].round(1)
     
-    st.dataframe(df_resumo_cobertura, use_container_width=True)
+    st.dataframe(df_resumo_cobertura, width='stretch')
 
 def exibir_analise_densidade_regenerantes(dados_restauracao, df_inventario):
     """Exibe análise específica da densidade de regenerantes"""
@@ -4722,7 +4726,7 @@ def exibir_analise_densidade_regenerantes(dados_restauracao, df_inventario):
                            annotation_text="Meta Assistida: 1.500 ind/ha")
     
     fig_densidade.update_layout(height=400)
-    st.plotly_chart(fig_densidade, use_container_width=True)
+    st.plotly_chart(fig_densidade, width='stretch')
     
     # Tabela resumo
     st.markdown("#### 📊 Resumo por Propriedade")
@@ -4734,7 +4738,7 @@ def exibir_analise_densidade_regenerantes(dados_restauracao, df_inventario):
     df_resumo_densidade['densidade_regenerantes'] = df_resumo_densidade['densidade_regenerantes'].round(0)
     df_resumo_densidade = df_resumo_densidade.drop('densidade_adequada', axis=1)
     
-    st.dataframe(df_resumo_densidade, use_container_width=True)
+    st.dataframe(df_resumo_densidade, width='stretch')
 
 def exibir_analise_riqueza_especies(dados_restauracao, df_inventario):
     """Exibe análise específica da riqueza de espécies"""
@@ -4801,7 +4805,7 @@ def exibir_analise_riqueza_especies(dados_restauracao, df_inventario):
     
     # Criar container scrollable
     with st.container():
-        st.plotly_chart(fig_riqueza, use_container_width=False)
+        st.plotly_chart(fig_riqueza, width='content')
     
     # Tabela resumo
     st.markdown("#### 📊 Resumo por Propriedade")
@@ -4827,7 +4831,7 @@ def exibir_analise_riqueza_especies(dados_restauracao, df_inventario):
     }
     df_resumo_riqueza = df_resumo_riqueza.rename(columns=nomes_colunas)
     
-    st.dataframe(df_resumo_riqueza, use_container_width=True)
+    st.dataframe(df_resumo_riqueza, width='stretch')
     
     # Informação sobre os critérios
     st.info("💡 **Critérios:** Meta baseada em espécies nativas com altura > 0.5m. Espécies 'Morto/Morta' excluídas de todas as análises.")
@@ -4881,9 +4885,9 @@ def exibir_analise_por_uts(df_caracterizacao, df_inventario):
                     )
                     fig_ut_cobertura.add_hline(y=80, line_dash="dash", line_color="red")
                     fig_ut_cobertura.update_layout(height=300)
-                    st.plotly_chart(fig_ut_cobertura, use_container_width=True)
+                    st.plotly_chart(fig_ut_cobertura, width='stretch')
                     
-                    st.dataframe(df_cobertura_ut, use_container_width=True)
+                    st.dataframe(df_cobertura_ut, width='stretch')
         
         # Riqueza por UT (do inventário)
         if len(df_inv_prop) > 0 and cod_parc_col:
@@ -4907,9 +4911,9 @@ def exibir_analise_por_uts(df_caracterizacao, df_inventario):
                     color_continuous_scale='Viridis'
                 )
                 fig_ut_riqueza.update_layout(height=300)
-                st.plotly_chart(fig_ut_riqueza, use_container_width=True)
+                st.plotly_chart(fig_ut_riqueza, width='stretch')
                 
-                st.dataframe(df_riqueza_ut, use_container_width=True)
+                st.dataframe(df_riqueza_ut, width='stretch')
 
 # ============================================================================
 # FUNÇÃO PRINCIPAL - DEVE ESTAR NO FINAL
@@ -4944,3 +4948,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
